@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wellmanifest/goal/models/catalog.schema.json",
+  "title": "Goal contract extraction catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "status",
+    "owner",
+    "runtimeOwner",
+    "effectAuthority",
+    "coverage",
+    "sources",
+    "ownershipEvidence",
+    "rules"
+  ],
+  "properties": {
+    "schema": {
+      "const": "wellmanifest.goal/catalog/v1"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "draft"
+    },
+    "owner": {
+      "const": "wellmanifest/goal"
+    },
+    "runtimeOwner": {
+      "const": "semcod/goal"
+    },
+    "effectAuthority": {
+      "const": false
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "exclusions"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "exclusions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "goal",
+        "routing",
+        "performance"
+      ],
+      "properties": {
+        "goal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "revision"
+          ],
+          "properties": {
+            "repository": {
+              "const": "semcod/goal"
+            },
+            "revision": {
+              "type": "string",
+            "pattern": "^[0-9a-f]{40}$",
+            "minLength": 40,
+            "maxLength": 40
+            }
+          }
+        },
+        "routing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "revision"
+          ],
+          "properties": {
+            "repository": {
+              "const": "wellmanifest/new-project"
+            },
+            "revision": {
+              "type": "string",
+            "pattern": "^[0-9a-f]{40}$",
+            "minLength": 40,
+            "maxLength": 40
+            }
+          }
+        },
+        "performance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "revision"
+          ],
+          "properties": {
+            "repository": {
+              "const": "wellmanifest/performance"
+            },
+            "revision": {
+              "type": "string",
+            "pattern": "^[0-9a-f]{40}$",
+            "minLength": 40,
+            "maxLength": 40
+            }
+          }
+        }
+      }
+    },
+    "ownershipEvidence": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "concern",
+          "statement",
+          "status",
+          "destination",
+          "extraction",
+          "effectAuthority",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^WMGOAL-[0-9]{3}$"
+          },
+          "concern": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{2,80}$"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "status": {
+            "enum": [
+              "observed",
+              "proposed"
+            ]
+          },
+          "destination": {
+            "enum": [
+              "wellmanifest/git-lifecycle",
+              "wellmanifest/ticket-lifecycle",
+              "wellmanifest/authority-lifecycle",
+              "wellmanifest/new-project",
+              "wellmanifest/logs",
+              "wellmanifest/merge",
+              "wellmanifest/repair-lifecycle",
+              "wellmanifest/performance"
+            ]
+          },
+          "extraction": {
+            "enum": [
+              "mapped",
+              "proposed"
+            ]
+          },
+          "effectAuthority": {
+            "const": false
+          },
+          "evidence": {
+            "type": "array",
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/evidence"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "path",
+        "sha256",
+        "symbol",
+        "kind"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "goal",
+            "routing",
+            "performance"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$",
+          "maxLength": 250
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "symbol": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 150
+        },
+        "kind": {
+          "enum": [
+            "implementation",
+            "test",
+            "ownership"
+          ]
+        }
+      }
+    }
+  }
+}
