@@ -1,0 +1,18 @@
+{
+  "schema": "new-project.intent/v3",
+  "ticket": "ticket-001",
+  "summary": "Formalize Goal contracts and extraction ownership",
+  "workstream": "integration",
+  "classification": {
+    "kind": "FEATURE",
+    "priority": "P2",
+    "origin": "requested"
+  },
+  "allowedPaths": ["project/ticket-001/**", "TODO.md", "project/TICKETS.md", "docs/**", "models/**", "operations/**", "VERSION"],
+  "forbiddenPaths": ["project/ticket-*/user-*.md"],
+  "stacks": [],
+  "dependsOn": [],
+  "conflictsWith": [],
+  "integrationTicket": null,
+  "placement": {"home": "wellmanifest", "shape": "domain_pack", "runtimeOwner": "semcod", "adopt": ["wellmanifest/new-project", "wellmanifest/docs"] }
+}
