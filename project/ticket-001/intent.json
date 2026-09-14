@@ -18,8 +18,8 @@
   "delivery": {
     "acceptedBaseSha": "7af2ec49a0768de01a1e55161ccf5633f0be31cd",
     "targetBranch": "main",
-    "outcome": "A local draft Wellmanifest Goal standard formalizes observed delivery/adoption/recovery contracts with immutable provenance, machine-readable extraction mapping and deterministic conformance.",
-    "nonGoals": ["No remote or publication", "No runtime move or changed behavior in Goal", "No second semantic owner for existing Wellmanifest packs", "No claimed exhaustive coverage of every Goal module", "No deployed CI or fleet adoption claim"],
+    "outcome": "A public reviewable PR formalizes observed delivery/adoption/recovery contracts with immutable provenance, machine-readable extraction mapping and deterministic conformance, following the user's explicit publication authorization.",
+    "nonGoals": ["No direct implementation merge or release", "No runtime move or changed behavior in Goal", "No second semantic owner for existing Wellmanifest packs", "No claimed exhaustive coverage of every Goal module", "No deployed CI or fleet adoption claim"],
     "complexity": "M",
     "estimatedMinutes": 60,
     "budgets": {"maxImplementationFiles": 8, "maxAffectedComponents": 3, "maxPublicInterfaceChanges": 2, "maxRuntimeDependencies": 0},

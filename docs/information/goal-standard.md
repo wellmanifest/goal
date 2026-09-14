@@ -3,7 +3,7 @@
   "schema": "wellmanifest.docs/document/v1",
   "id": "goal-standard",
   "kind": "information",
-  "version": 1,
+  "version": 2,
   "title": "Goal contract catalog and extraction standard",
   "status": "draft",
   "owner": "wellmanifest/goal",
@@ -20,7 +20,7 @@
 }
 ---
 
-# Standard wellmanifest/goal 0.1.0 — projekt lokalny
+# Standard wellmanifest/goal 0.1.0 — projekt do przeglądu
 
 <!-- docs:section purpose -->
 ## Cel
@@ -158,8 +158,10 @@ nieobsługiwane słowo kluczowe jest błędem, nie ignorowanym wymaganiem.
 <!-- docs:section limitations -->
 ## Ograniczenia i ryzyka
 
-To lokalny, nieopublikowany projekt 0.1.0. Brak remote, niezależnego review,
-wdrożonego CI i adopcji przez Goal. Standard nie dowodzi, że stare recovery
+Repozytorium [wellmanifest/goal](https://github.com/wellmanifest/goal) jest publiczne
+na wyraźne polecenie użytkownika. Standard 0.1.0 pozostaje projektem do przeglądu,
+nie wydaniem. Nie potwierdzono niezależnego review, wdrożonej kontroli kontraktów
+ani adopcji przez Goal. Standard nie dowodzi, że stare recovery
 jest bezpieczne jako całość: inne strategie zawierają działania destrukcyjne.
 Stash nie jest trwałym snapshotem cross-machine. Stałe limity prób i TTL
 nie dowodzą istnienia adaptacyjnego zarządzania budżetem.
@@ -170,15 +172,18 @@ uprawnień, terminów ważności dowodów lub pomijać akceptacji dla oszczędno
 czasu. Implementacja i pomiary takiego kontrolera pozostają osobnym zadaniem.
 
 Przypięty checker ciągłości `new-project` wymaga `remote.origin.url`.
-W tym celowo lokalnym repo nie można wygenerować prawidłowego checkpointu V2
-bez zmiany jego kontraktu. Nie dodano fikcyjnego remote ani fałszywej obserwacji.
-Historia lokalnego baseline i materialnego commitu oraz zewnętrzny snapshot
-stanowią recovery, lecz nie są przedstawiane jako poprawny checkpoint V2.
+Przed zgodą na publikację jego brak uniemożliwiał prawidłowy checkpoint V2;
+zachowano wtedy historię lokalną i zewnętrzny snapshot, bez fikcyjnego remote.
+Po utworzeniu rzeczywistego repozytorium granicę publikacji można zapisać
+standardowym checkpointem. Historyczny snapshot nie staje się przez to
+automatycznie poprawnym checkpointem V2 ani dowodem zdalnej akceptacji.
 
 <!-- docs:section next_actions -->
 ## Następne działania
 
-Przejrzeć katalog z właścicielami przed publikacją; uzupełnić test WMGOAL-008;
-wybrać pierwszy zakres ekstrakcji. Osobno uzgodnić publikację repozytorium,
-chroniony profil CI i zgodny kontrakt recovery dla repo bez remote. Nie ma
+Przejrzeć katalog z właścicielami przed merge; uzupełnić test WMGOAL-008;
+wybrać pierwszy zakres ekstrakcji. Chroniony rejestr Validatora i profil OneDev
+nie obejmowały wellmanifest/goal podczas preflight publikacji. Ich przyjęcie
+wymaga osobnej, zaufanej konfiguracji; kod autora nie nadaje sobie akceptacji.
+Nie ma
 automatycznej adopcji ani przepisania istniejących standardów w tym zadaniu.

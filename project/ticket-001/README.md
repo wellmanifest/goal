@@ -3,7 +3,7 @@
 - **ID**: ticket-001
 - **Owner**: agent:codex
 - **Status**: IN_PROGRESS
-- **Workflow state**: VALIDATION
+- **Workflow state**: PUBLICATION
 - **Created**: 2026-09-14
 
 ## Goal and scope
@@ -12,7 +12,9 @@ Formalize existing semcod/goal contracts as a local, transitional Wellmanifest
 standard with stable rule IDs, source evidence, conformance vectors and explicit
 extraction destinations. Do not copy runtime code or redefine existing pack
 authority. The user explicitly approved the local governance baseline on
-2026-09-14; no remote creation or publication is authorized.
+2026-09-14. The later explicit request to push changes and the choice of a public
+repository authorize remote creation, baseline push and publication of this
+ticket branch through a PR. They do not authorize direct implementation merge.
 
 ## Acceptance criteria
 
