@@ -3,7 +3,7 @@
 - **ID**: ticket-001
 - **Owner**: agent:codex
 - **Status**: IN_PROGRESS
-- **Workflow state**: EDIT
+- **Workflow state**: VALIDATION
 - **Created**: 2026-09-14
 
 ## Goal and scope
@@ -16,12 +16,20 @@ authority. The user explicitly approved the local governance baseline on
 
 ## Acceptance criteria
 
-- [ ] AC-01: Catalog distinguishes observed Goal behavior, referenced pack ownership
+- [x] AC-01: Catalog distinguishes observed Goal behavior, referenced pack ownership
   and proposed improvements; every extracted rule retains a stable ID and source.
-- [ ] AC-02: Closed-schema data and deterministic offline conformance reject
+- [x] AC-02: Closed-schema data and deterministic offline conformance reject
   authority escalation, owner duplication and unsupported extraction claims.
-- [ ] AC-03: Standard, catalog and extraction process are indexed, tested and
+- [x] AC-03: Standard, catalog and extraction process are indexed, tested and
   governed locally without changing semcod/goal or creating a remote.
+
+Deliverable: [Goal standard and extraction process](../../docs/information/goal-standard.md).
+Local checks: 29 conformance tests passed; 14 exact Git blobs and named symbols
+verified; JSON Schema Draft 2020-12 model/catalog validation passed; managed gate
+passed with zero errors/warnings. No semantic or runtime certification claimed.
+The managed continuity capture cannot resolve a repository without origin
+(GOV-CONTINUITY-003); no remote is invented to satisfy it. Preserve local history
+and a secret-scanned external snapshot, not a fabricated v2 checkpoint.
 
 ## Tracking boundary
 

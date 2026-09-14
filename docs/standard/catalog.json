@@ -1,0 +1,352 @@
+{
+  "schema": "wellmanifest.goal/catalog/v1",
+  "version": "0.1.0",
+  "status": "draft",
+  "owner": "wellmanifest/goal",
+  "runtimeOwner": "semcod/goal",
+  "effectAuthority": false,
+  "coverage": {
+    "scope": "Observed governance, delivery, adoption, version projection and bounded recovery behavior at the pinned Goal revision.",
+    "exclusions": [
+      "Not all Goal modules are certified",
+      "Legacy interactive and destructive recovery strategies",
+      "Dependency-update execution and provider/model routing",
+      "Fleet adoption, deployed CI and adaptive budget execution"
+    ]
+  },
+  "sources": {
+    "goal": {
+      "repository": "semcod/goal",
+      "revision": "4d8b4d286d2ceaa8bab3e948d5cceb7e89f5b5ca"
+    },
+    "routing": {
+      "repository": "wellmanifest/new-project",
+      "revision": "d54878a105a20d84dd554f205bc177dcacc8730a"
+    },
+    "performance": {
+      "repository": "wellmanifest/performance",
+      "revision": "0fbf213c6c9b0e103e228496e879cc3ff9a21f09"
+    }
+  },
+  "ownershipEvidence": [
+    {
+      "source": "routing",
+      "path": "governance/standard-packs.json",
+      "sha256": "107f9fcc6231c108b216055c63ba43e8bd5ec152ea7a2a5906642c3484fceed9",
+      "symbol": null,
+      "kind": "ownership"
+    },
+    {
+      "source": "performance",
+      "path": "README.md",
+      "sha256": "e724f4af22e70c1aee6688ab0f9dce503344480807ef2601b43d894bcc38b507",
+      "symbol": null,
+      "kind": "ownership"
+    }
+  ],
+  "rules": [
+    {
+      "id": "WMGOAL-001",
+      "concern": "delivery-modes",
+      "statement": "Observed opt-in delivery policy validates allowed modes and full-workflow requirements; an absent policy preserves legacy behavior.",
+      "status": "observed",
+      "destination": "wellmanifest/git-lifecycle",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/delivery.py",
+          "sha256": "519902431d873a2a9ef309c3b339e030212a0bc50c6a7964c09ce0bb1e55525b",
+          "symbol": "resolve_delivery_policy",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_governance_delivery.py",
+          "sha256": "0952fd0e1ec4280352485d405f5b9c3480afabf1f6395587149c5e04ba5e23be",
+          "symbol": "test_policy_requires_goal_all_and_rejects_disallowed_mode",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-002",
+      "concern": "ticket-binding",
+      "statement": "A governed pending delivery binds commit subjects to exactly one ticket identity and requires an explicit ticket when selection is ambiguous.",
+      "status": "observed",
+      "destination": "wellmanifest/ticket-lifecycle",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/delivery.py",
+          "sha256": "519902431d873a2a9ef309c3b339e030212a0bc50c6a7964c09ce0bb1e55525b",
+          "symbol": "subject_binds_ticket",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_governance_delivery.py",
+          "sha256": "0952fd0e1ec4280352485d405f5b9c3480afabf1f6395587149c5e04ba5e23be",
+          "symbol": "test_subject_binds_ticket_rejects_multiple_ticket_identities",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-003",
+      "concern": "local-push-capability",
+      "statement": "A local pre-push capability binds token, expiry, mode and remote; it is not protected merge approval and cannot constrain a user who controls local hooks.",
+      "status": "observed",
+      "destination": "wellmanifest/authority-lifecycle",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/delivery.py",
+          "sha256": "519902431d873a2a9ef309c3b339e030212a0bc50c6a7964c09ce0bb1e55525b",
+          "symbol": "authorize_hook_push",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_governance_delivery.py",
+          "sha256": "0952fd0e1ec4280352485d405f5b9c3480afabf1f6395587149c5e04ba5e23be",
+          "symbol": "test_raw_environment_flag_is_not_authorization",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-004",
+      "concern": "published-adoption",
+      "statement": "Production adoption verifies an immutable source revision, annotated release tag and final publication metadata; explicit test-candidate mode is separate.",
+      "status": "observed",
+      "destination": "wellmanifest/new-project",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/cli/governance_cmd.py",
+          "sha256": "82a3e062448b5d6f4ff45932432c86e813834a7284de32d9274933fc161f1e41",
+          "symbol": "_verify_published_standard",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_governance_cmd.py",
+          "sha256": "67c474f6e7de7c26101bfd1287e81727f10248823d01388681eff853a46ca339",
+          "symbol": "test_adopt_rejects_lightweight_release_tag",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-005",
+      "concern": "supported-pin-planning",
+      "statement": "The offline planner retains a supported current pin by default and emits only explicit digest-bound migration previews; catalog integrity is not provenance or authority.",
+      "status": "observed",
+      "destination": "wellmanifest/new-project",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/adoption_plan.py",
+          "sha256": "132fb10e659b0b79686a9dc3ac23229f7d6f1f23a291cc9209d2185676a6983b",
+          "symbol": "plan_adoption",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_adoption_plan.py",
+          "sha256": "1588e5313cc52a8b1f01ad94445bc72f187cb727871224c7bac3f6ea2ac90212",
+          "symbol": "test_supported_pin_retained_with_newer_release_and_dirty_product",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-006",
+      "concern": "diagnostic-routing",
+      "statement": "Governance diagnostics resolve through a versioned catalog and safe local runbook paths; a diagnostic never grants permission to bypass a gate.",
+      "status": "observed",
+      "destination": "wellmanifest/logs",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/delivery.py",
+          "sha256": "519902431d873a2a9ef309c3b339e030212a0bc50c6a7964c09ce0bb1e55525b",
+          "symbol": "governance_diagnostic_guidance",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_governance_delivery.py",
+          "sha256": "0952fd0e1ec4280352485d405f5b9c3480afabf1f6395587149c5e04ba5e23be",
+          "symbol": "test_diagnostic_guidance_rejects_escaping_runbook",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-007",
+      "concern": "source-hub-health",
+      "statement": "Source hubs use their own declared contract and test entrypoints; successful checks that mutate Git state are rejected.",
+      "status": "observed",
+      "destination": "wellmanifest/new-project",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/delivery.py",
+          "sha256": "519902431d873a2a9ef309c3b339e030212a0bc50c6a7964c09ce0bb1e55525b",
+          "symbol": "run_source_hub_health",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_governance_source_hub.py",
+          "sha256": "ac68f103a823dd4fe94abde51e0ae792919172fb9e1e4e632f6c857388ac0c6d",
+          "symbol": "test_source_hub_health_fails_if_successful_check_changes_git_state",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-008",
+      "concern": "reconciliation-boundary",
+      "statement": "The branch-intent adapter checks a caller-supplied lock digest and executes the adopted checker; its result is not deletion authority.",
+      "status": "observed",
+      "destination": "wellmanifest/merge",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/branch_intent.py",
+          "sha256": "84a000a49fa3fe5a59f2c274a4dcbd029363dedcda7f4b372ac048ed89100b29",
+          "symbol": "run_check",
+          "kind": "implementation"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-009",
+      "concern": "release-base",
+      "statement": "Publish-only governed delivery requires a clean checkout at the observed remote base; a clean ahead commit is not sufficient.",
+      "status": "observed",
+      "destination": "wellmanifest/git-lifecycle",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/delivery.py",
+          "sha256": "519902431d873a2a9ef309c3b339e030212a0bc50c6a7964c09ce0bb1e55525b",
+          "symbol": "validate_delivery_ready",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_governance_delivery.py",
+          "sha256": "0952fd0e1ec4280352485d405f5b9c3480afabf1f6395587149c5e04ba5e23be",
+          "symbol": "test_publish_only_rejects_clean_local_commit_ahead_of_remote",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-010",
+      "concern": "recovery-preservation",
+      "statement": "The tested RecoveryManager reset helper preserves tracked and untracked work using stash and retains conflicting stashes. This does not certify every recovery strategy or provide durable cross-machine recovery.",
+      "status": "observed",
+      "destination": "wellmanifest/repair-lifecycle",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/recovery/manager.py",
+          "sha256": "df76fd5004d25a5a55c5e7126242f6018d8a1bb0845398df7aa7964b9dd9cbc4",
+          "symbol": "_reset_hard_preserving_work",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_recovery_preserves_work.py",
+          "sha256": "fb404776e5629f6b82296c2bd6dd5b14cca5ffbe455790b6341c4e077558e919",
+          "symbol": "test_untracked_file_survives_reset",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-011",
+      "concern": "version-projections",
+      "statement": "Version synchronization refreshes detected dependency lockfiles when updating the project version; projections must remain attributable to the material change.",
+      "status": "observed",
+      "destination": "wellmanifest/git-lifecycle",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/cli/version_sync.py",
+          "sha256": "b519d435319e80b39c8b707b5f3d021b7e903234927fc06d06335c173e6b84f0",
+          "symbol": "sync_all_versions",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_version_sync.py",
+          "sha256": "e0f28b661da8b134daf11e7217d9b2684ac5323573b1dd41669ccb404595f780",
+          "symbol": "test_sync_refreshes_detected_dependency_lockfiles",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-012",
+      "concern": "bounded-retries",
+      "statement": "The delivery implementation has fixed capability TTL and bounded PR-head retries. Automatic adaptive budget control is not evidenced by these constants.",
+      "status": "observed",
+      "destination": "wellmanifest/performance",
+      "extraction": "mapped",
+      "effectAuthority": false,
+      "evidence": [
+        {
+          "source": "goal",
+          "path": "goal/governance/delivery.py",
+          "sha256": "519902431d873a2a9ef309c3b339e030212a0bc50c6a7964c09ce0bb1e55525b",
+          "symbol": "PULL_REQUEST_HEAD_ATTEMPTS",
+          "kind": "implementation"
+        },
+        {
+          "source": "goal",
+          "path": "tests/test_governance_delivery.py",
+          "sha256": "0952fd0e1ec4280352485d405f5b9c3480afabf1f6395587149c5e04ba5e23be",
+          "symbol": "test_open_pr_with_stale_head_fails_closed",
+          "kind": "test"
+        }
+      ]
+    },
+    {
+      "id": "WMGOAL-013",
+      "concern": "adaptive-budgets",
+      "statement": "Proposed: tune throughput limits only within an explicitly authorized envelope using measured latency/cost and conflict evidence. Never increase authority, TTL, approval limits or destructive permissions as a performance optimization. No implementation is claimed.",
+      "status": "proposed",
+      "destination": "wellmanifest/performance",
+      "extraction": "proposed",
+      "effectAuthority": false,
+      "evidence": []
+    }
+  ]
+}

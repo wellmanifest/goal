@@ -8,11 +8,40 @@
     "priority": "P2",
     "origin": "requested"
   },
-  "allowedPaths": ["project/ticket-001/**", "TODO.md", "project/TICKETS.md", "docs/**", "models/**", "operations/**", "VERSION"],
+  "allowedPaths": ["project/ticket-001/**", "TODO.md", "project/TICKETS.md", "docs/**", "models/**", "operations/**", "VERSION", ".governance/required-checks.json"],
   "forbiddenPaths": ["project/ticket-*/user-*.md"],
   "stacks": [],
   "dependsOn": [],
   "conflictsWith": [],
   "integrationTicket": null,
-  "placement": {"home": "wellmanifest", "shape": "domain_pack", "runtimeOwner": "semcod", "adopt": ["wellmanifest/new-project", "wellmanifest/docs"] }
+  "placement": {"home": "wellmanifest", "shape": "domain_pack", "runtimeOwner": "semcod", "adopt": ["wellmanifest/new-project", "wellmanifest/docs"] },
+  "delivery": {
+    "acceptedBaseSha": "7af2ec49a0768de01a1e55161ccf5633f0be31cd",
+    "targetBranch": "main",
+    "outcome": "A local draft Wellmanifest Goal standard formalizes observed delivery/adoption/recovery contracts with immutable provenance, machine-readable extraction mapping and deterministic conformance.",
+    "nonGoals": ["No remote or publication", "No runtime move or changed behavior in Goal", "No second semantic owner for existing Wellmanifest packs", "No claimed exhaustive coverage of every Goal module", "No deployed CI or fleet adoption claim"],
+    "complexity": "M",
+    "estimatedMinutes": 60,
+    "budgets": {"maxImplementationFiles": 8, "maxAffectedComponents": 3, "maxPublicInterfaceChanges": 2, "maxRuntimeDependencies": 0},
+    "architecture": {
+      "status": "accepted",
+      "decision": "Version a composition/extraction catalog rather than copying execution code. Pin Goal source and existing pack routing. Verify its closed model, authority boundary and extraction evidence offline. Preserve existing runtime interfaces and IDs.",
+      "components": [
+        {"name": "standard", "paths": ["docs/**", "VERSION", ".governance/required-checks.json"]},
+        {"name": "model", "paths": ["models/**"]},
+        {"name": "conformance", "paths": ["operations/**"]}
+      ],
+      "responsibilityChanges": false,
+      "interfaceChanges": ["wellmanifest.goal/catalog/v1", "Offline conformance JSON report"],
+      "dataChanges": [],
+      "ui": {"impact": "none", "states": [], "evidence": []},
+      "rollback": "Keep the seed and remove or revert only this ticket's local draft; no adopter has been changed."
+    },
+    "runtimeDependencies": [],
+    "validation": [
+      {"criterion": "AC-01", "commands": ["python operations/conformance.py --source-root /home/tom/github/semcod/goal --routing-root /home/tom/github/wellmanifest/new-project --performance-root /home/tom/github/wellmanifest/performance"], "evidence": "13 rules and 14 immutable source blobs verified locally; not runtime or semantic certification"},
+      {"criterion": "AC-02", "commands": ["python -m unittest discover -s operations -p 'test_*.py' -v"], "evidence": "Pending positive and adversarial vectors"},
+      {"criterion": "AC-03", "commands": ["./project/governance-check.sh --base main --head HEAD --actor agent"], "evidence": "Pending local managed gate; no external publication"}
+    ]
+  }
 }
