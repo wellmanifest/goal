@@ -90,6 +90,12 @@ class CatalogTests(unittest.TestCase):
     def test_invalid_digest(self):
         self.reject(lambda d: d["rules"][0]["evidence"][0].update(sha256="latest"))
 
+    def test_pins_cannot_have_trailing_newlines(self):
+        self.reject(lambda d: d["sources"]["goal"].update(
+            revision=d["sources"]["goal"]["revision"] + "\n"))
+        self.reject(lambda d: d["rules"][0]["evidence"][0].update(
+            sha256=d["rules"][0]["evidence"][0]["sha256"] + "\n"))
+
     def test_rules_are_bounded(self):
         self.reject(lambda d: d.update(rules=d["rules"] * 10))
 

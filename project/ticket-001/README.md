@@ -24,7 +24,7 @@ authority. The user explicitly approved the local governance baseline on
   governed locally without changing semcod/goal or creating a remote.
 
 Deliverable: [Goal standard and extraction process](../../docs/information/goal-standard.md).
-Local checks: 29 conformance tests passed; 14 exact Git blobs and named symbols
+Local checks: 30 conformance tests passed; 14 exact Git blobs and named symbols
 verified; JSON Schema Draft 2020-12 model/catalog validation passed; managed gate
 passed with zero errors/warnings. No semantic or runtime certification claimed.
 The managed continuity capture cannot resolve a repository without origin

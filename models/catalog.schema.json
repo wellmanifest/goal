@@ -83,7 +83,9 @@
             },
             "revision": {
               "type": "string",
-              "pattern": "^[0-9a-f]{40}$"
+            "pattern": "^[0-9a-f]{40}$",
+            "minLength": 40,
+            "maxLength": 40
             }
           }
         },
@@ -100,7 +102,9 @@
             },
             "revision": {
               "type": "string",
-              "pattern": "^[0-9a-f]{40}$"
+            "pattern": "^[0-9a-f]{40}$",
+            "minLength": 40,
+            "maxLength": 40
             }
           }
         },
@@ -117,7 +121,9 @@
             },
             "revision": {
               "type": "string",
-              "pattern": "^[0-9a-f]{40}$"
+            "pattern": "^[0-9a-f]{40}$",
+            "minLength": 40,
+            "maxLength": 40
             }
           }
         }
@@ -228,7 +234,9 @@
         },
         "sha256": {
           "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "pattern": "^[0-9a-f]{64}$",
+          "minLength": 64,
+          "maxLength": 64
         },
         "symbol": {
           "type": [

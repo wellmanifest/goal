@@ -39,7 +39,7 @@
     },
     "runtimeDependencies": [],
     "validation": [
-      {"criterion": "AC-01", "commands": ["python operations/conformance.py --source-root /home/tom/github/semcod/goal --routing-root /home/tom/github/wellmanifest/new-project --performance-root /home/tom/github/wellmanifest/performance"], "evidence": "13 rules and 14 immutable source blobs verified locally; not runtime or semantic certification"},
+      {"criterion": "AC-01", "commands": ["python operations/conformance.py --source-root ../../../../semcod/goal --routing-root ../../../new-project --performance-root ../../../performance"], "evidence": "13 rules and 14 immutable source blobs verified locally; not runtime or semantic certification"},
       {"criterion": "AC-02", "commands": ["python -m unittest discover -s operations -p 'test_*.py' -v"], "evidence": "Pending positive and adversarial vectors"},
       {"criterion": "AC-03", "commands": ["./project/governance-check.sh --base main --head HEAD --actor agent"], "evidence": "Pending local managed gate; no external publication"}
     ]
