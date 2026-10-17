@@ -116,9 +116,27 @@ def validate(data, schema):
             raise ValueError("noncanonical evidence path")
 
 
+def _read_git_blob(root, revision, path):
+    result = subprocess.run(["git", "-C", str(root), "show", f"{revision}:{path}"],
+                            check=True, capture_output=True, timeout=10)
+    if len(result.stdout) > MAX_BYTES:
+        raise ValueError("source blob exceeds verification bound")
+    return result.stdout
+
+
+def _extract_python_symbols(raw):
+    tree = ast.parse(raw)
+    symbols = {node.name for node in ast.walk(tree)
+               if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
+    symbols |= {node.id for node in ast.walk(tree)
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)}
+    return symbols
+
+
 def verify_sources(data, roots):
     """Read immutable Git blobs, verifying hashes and named Python symbols only."""
     cache = {}
+    symbol_cache = {}
     evidence = [*data["ownershipEvidence"],
                 *(x for rule in data["rules"] for x in rule["evidence"])]
     for item in evidence:
@@ -126,22 +144,14 @@ def verify_sources(data, roots):
         key = source, path
         if key not in cache:
             revision = data["sources"][source]["revision"]
-            result = subprocess.run(["git", "-C", str(roots[source]), "show",
-                                     f"{revision}:{path}"], check=True,
-                                    capture_output=True, timeout=10)
-            if len(result.stdout) > MAX_BYTES:
-                raise ValueError("source blob exceeds verification bound")
-            cache[key] = result.stdout
+            cache[key] = _read_git_blob(roots[source], revision, path)
         raw = cache[key]
         if hashlib.sha256(raw).hexdigest() != item["sha256"]:
             raise ValueError(f"source digest mismatch: {source}/{path}")
         if item["symbol"]:
-            tree = ast.parse(raw)
-            symbols = {node.name for node in ast.walk(tree)
-                       if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
-            symbols |= {node.id for node in ast.walk(tree)
-                        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)}
-            if item["symbol"] not in symbols:
+            if key not in symbol_cache:
+                symbol_cache[key] = _extract_python_symbols(raw)
+            if item["symbol"] not in symbol_cache[key]:
                 raise ValueError(f"source symbol missing: {source}/{path}")
     return len(cache)
 

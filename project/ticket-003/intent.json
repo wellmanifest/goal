@@ -1,0 +1,72 @@
+{
+  "schema": "new-project.intent/v3",
+  "ticket": "ticket-003",
+  "summary": "Extract git blob and AST symbol helpers from loop in conformance",
+  "workstream": "integration",
+  "classification": {
+    "kind": "SERVICE",
+    "priority": "P2",
+    "origin": "health"
+  },
+  "allowedPaths": [
+    "project/ticket-003/**",
+    "TODO.md",
+    "project/TICKETS.md",
+    "operations/conformance.py"
+  ],
+  "forbiddenPaths": [
+    "project/ticket-*/user-*.md"
+  ],
+  "stacks": [],
+  "dependsOn": [],
+  "conflictsWith": [],
+  "integrationTicket": null,
+  "delivery": {
+    "acceptedBaseSha": "8469a23da16ffa703fc835ccc582b011aee9dee7",
+    "targetBranch": "main",
+    "outcome": "Extract _read_git_blob and _extract_python_symbols helpers outside the verification loop in operations/conformance.py and align .governance/standard-adoption.json.",
+    "nonGoals": [
+      "No breaking CLI or schema changes"
+    ],
+    "complexity": "S",
+    "estimatedMinutes": 15,
+    "budgets": {
+      "maxImplementationFiles": 1,
+      "maxAffectedComponents": 1,
+      "maxPublicInterfaceChanges": 0,
+      "maxRuntimeDependencies": 0
+    },
+    "architecture": {
+      "status": "accepted",
+      "decision": "Move subprocess.run git blob loading and ast.parse symbol extraction into cached module-level helpers in operations/conformance.py.",
+      "components": [
+        {
+          "name": "goal-conformance",
+          "paths": [
+            "operations/conformance.py"
+          ]
+        }
+      ],
+      "responsibilityChanges": false,
+      "interfaceChanges": [],
+      "dataChanges": [],
+      "ui": {
+        "impact": "none",
+        "states": [],
+        "evidence": []
+      },
+      "rollback": "Revert helper extraction in operations/conformance.py."
+    },
+    "runtimeDependencies": [],
+    "validation": [
+      {
+        "criterion": "AC-01",
+        "commands": [
+          "python3 -m unittest discover -s operations -p \"test_*.py\"",
+          "./project/governance-check.sh"
+        ],
+        "evidence": "All tests, standard_pack_check, and governance checks pass with 0 findings."
+      }
+    ]
+  }
+}
