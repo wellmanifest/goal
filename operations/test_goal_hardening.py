@@ -73,8 +73,9 @@ class GoalHardeningTests(unittest.TestCase):
             link_parent = root / "link_parent"
             link_parent.symlink_to(real_parent)
             nested_via_symlink = link_parent / "repo"
-            with patch.object(c.subprocess, "run") as run, self.assertRaisesRegex(
-                ValueError, "non-symlink directory"
+            with (
+                patch.object(c.subprocess, "run") as run,
+                self.assertRaisesRegex(ValueError, "non-symlink directory"),
             ):
                 c._read_git_blob(nested_via_symlink, "a" * 40, "goal/delivery.py")
             run.assert_not_called()
@@ -82,11 +83,13 @@ class GoalHardeningTests(unittest.TestCase):
     def test_huge_int_lone_surrogates_symlink_ancestors_and_iterative_ast_symbols(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for idx, payload in enumerate((
-                b'{"count": ' + (b"9" * 400) + b"}",
-                b'{"text": "\\ud800"}',
-                b'{"\\udfff": 1}',
-            )):
+            for idx, payload in enumerate(
+                (
+                    b'{"count": ' + (b"9" * 400) + b"}",
+                    b'{"text": "\\ud800"}',
+                    b'{"\\udfff": 1}',
+                )
+            ):
                 bad_file = root / f"bad-{idx}.json"
                 bad_file.write_bytes(payload)
                 with self.assertRaises(ValueError):
@@ -130,6 +133,69 @@ class GoalHardeningTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             c._extract_python_symbols(b"x = 1\x00")
         self.assertIsNone(c._HEX40_RE.match("a" * 40 + "\n"))
+
+    def test_relative_symlink_parent_traversal_5000_digits_canonical_surrogates_and_schema_kws(
+        self,
+    ) -> None:
+        for name in ("goal_io.py", "conformance.py", "test_goal_hardening.py"):
+            lines = (c.ROOT / "operations" / name).read_text(encoding="utf-8").splitlines()
+            self.assertLess(len(lines), 500, f"{name} exceeded 500 lines: {len(lines)}")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            huge_5000 = root / "huge-5000.json"
+            huge_5000.write_bytes(b'{"count": ' + (b"9" * 5000) + b"}")
+            with self.assertRaises(ValueError):
+                c.read_json(huge_5000)
+
+            real_sub = root / "real_sub"
+            real_sub.mkdir()
+            real_cat = root / "catalog.json"
+            real_cat.write_bytes((c.ROOT / "docs/standard/catalog.json").read_bytes())
+            sym_sub = root / "sym_sub"
+            sym_sub.symlink_to(real_sub)
+
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                self.assertEqual(c.main(["--catalog", "sym_sub/../catalog.json"]), 2)
+                with (
+                    patch.object(c.subprocess, "run") as run,
+                    self.assertRaisesRegex(ValueError, "non-symlink directory"),
+                ):
+                    c._read_git_blob("sym_sub/../real_sub", "a" * 40, "goal/delivery.py")
+                run.assert_not_called()
+            finally:
+                os.chdir(old_cwd)
+
+        for bad_val in ("\ud800", 10**400, {1: 2}):
+            with self.subTest(val=type(bad_val).__name__), self.assertRaises(ValueError):
+                c.canonical(bad_val)
+        with self.assertRaises(ValueError):
+            c.reject_sensitive({"k": "bad\ud800val"})
+
+        for bad_kw in (
+            {"type": "object", "additionalProperties": "nope"},
+            {"type": "object", "properties": []},
+            {"type": "object", "required": "id"},
+            {"type": "array", "minItems": True},
+            {"type": "array", "uniqueItems": "yes"},
+            {"type": "string", "maxLength": -1},
+            {"type": "string", "pattern": 123},
+            {"enum": []},
+        ):
+            with (
+                self.subTest(kw=list(bad_kw.keys())[-1]),
+                self.assertRaisesRegex(ValueError, "unsupported schema"),
+            ):
+                sample: object = (
+                    {}
+                    if bad_kw.get("type") == "object"
+                    else []
+                    if bad_kw.get("type") == "array"
+                    else "x"
+                )
+                c.check_shape(sample, bad_kw, self.schema)
 
 
 if __name__ == "__main__":
