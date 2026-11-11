@@ -158,11 +158,15 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^WMGOAL-[0-9]{3}$"
+            "pattern": "^WMGOAL-[0-9]{3}$",
+            "minLength": 10,
+            "maxLength": 10
           },
           "concern": {
             "type": "string",
-            "pattern": "^[a-z][a-z0-9-]{2,80}$"
+            "pattern": "^[a-z][a-z0-9-]{2,80}$",
+            "minLength": 3,
+            "maxLength": 81
           },
           "statement": {
             "type": "string",
@@ -243,6 +247,8 @@
             "string",
             "null"
           ],
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "minLength": 1,
           "maxLength": 150
         },
         "kind": {

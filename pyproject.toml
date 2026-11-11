@@ -1,0 +1,24 @@
+[project]
+name = "wellmanifest-goal"
+version = "0.1.0"
+description = "Wellmanifest Goal contract extraction catalog and offline conformance"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.wellmanifest]
+standard = "0.20.32"
+revision = "b6ba9c21a65a6a5648ecf904b64c3b75295e136f"
+gate = "project/governance-check.sh"
+
+[tool.pytest.ini_options]
+addopts = "-p wellmanifest_governance -p no:cacheprovider"
+pythonpath = [".", "operations"]
+testpaths = ["operations"]
+python_files = ["test_*.py"]

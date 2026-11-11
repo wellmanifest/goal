@@ -1,0 +1,97 @@
+{
+  "schema": "new-project.intent/v3",
+  "ticket": "ticket-004",
+  "summary": "Harden Goal catalog conformance validation and wire pytest",
+  "workstream": "integration",
+  "classification": {
+    "kind": "BUG",
+    "priority": "P1",
+    "origin": "health"
+  },
+  "allowedPaths": [
+    "project/ticket-001/README.md",
+    "project/ticket-002/README.md",
+    "project/ticket-003/README.md",
+    "project/ticket-004/**",
+    "TODO.md",
+    "project/TICKETS.md",
+    "models/catalog.schema.json",
+    "operations/conformance.py",
+    "operations/test_conformance.py",
+    "pyproject.toml"
+  ],
+  "forbiddenPaths": [
+    "project/ticket-*/user-*.md"
+  ],
+  "stacks": [],
+  "dependsOn": [],
+  "conflictsWith": [],
+  "integrationTicket": null,
+  "delivery": {
+    "acceptedBaseSha": "bba8a8e2783721e07713d68435a3afb43301ed89",
+    "targetBranch": "main",
+    "outcome": "Enforce strict JSON Schema pattern anchoring without trailing-newline bypass, valid Python identifier symbols at module/class scope, symlink and git-flag guards, inline secret rejection, standalone pytest/ruff configuration, and reconciliation of merged tickets 001-003.",
+    "nonGoals": [
+      "Do not modify docs/standard/catalog.json rule semantics or runtimeOwner",
+      "No runtime dependency additions"
+    ],
+    "complexity": "S",
+    "estimatedMinutes": 25,
+    "budgets": {
+      "maxImplementationFiles": 4,
+      "maxAffectedComponents": 2,
+      "maxPublicInterfaceChanges": 0,
+      "maxRuntimeDependencies": 1
+    },
+    "architecture": {
+      "status": "accepted",
+      "decision": "Keep offline zero-dependency conformance in operations/conformance.py while tightening JSON Schema regex anchoring, AST scope symbol extraction, symlink/git-flag guards, and adding pyproject.toml for pytest and ruff.",
+      "components": [
+        {
+          "name": "goal-catalog-conformance",
+          "paths": [
+            "models/catalog.schema.json",
+            "operations/conformance.py",
+            "operations/test_conformance.py",
+            "pyproject.toml"
+          ]
+        }
+      ],
+      "responsibilityChanges": false,
+      "interfaceChanges": [],
+      "dataChanges": [],
+      "ui": {
+        "impact": "none",
+        "states": [],
+        "evidence": []
+      },
+      "rollback": "Revert the ticket branch commit or close the pull request before merge."
+    },
+    "runtimeDependencies": [],
+    "validation": [
+      {
+        "criterion": "AC-01",
+        "commands": [
+          "python3 operations/conformance.py"
+        ],
+        "evidence": "project/ticket-004/README.md"
+      },
+      {
+        "criterion": "AC-02",
+        "commands": [
+          "ruff check --no-cache operations",
+          "python3 -m pytest -q"
+        ],
+        "evidence": "project/ticket-004/README.md"
+      },
+      {
+        "criterion": "AC-03",
+        "commands": [
+          "./project/governance-check.sh --base origin/main",
+          "wellman check"
+        ],
+        "evidence": "project/ticket-004/README.md"
+      }
+    ]
+  }
+}
