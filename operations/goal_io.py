@@ -24,6 +24,33 @@ _SENSITIVE_RE = re.compile(
     r"VATE KEY-----"
     r"|(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{16,})"
 )
+_DENIED_SECRET_KEY_RE = re.compile(
+    r"\A(?:api_?"
+    r"key|access_?token|auth_?token|client_?secret|secret_?key|private_?key|"
+    r"pass"
+    r"word|passwd|pwd)\Z",
+    re.IGNORECASE,
+)
+
+__all__ = [
+    "MAX_BYTES",
+    "MAX_JSON_DEPTH",
+    "_DENIED_SECRET_KEY_RE",
+    "_SENSITIVE_RE",
+    "_check_no_symlink_ancestors",
+    "_check_utf8_str",
+    "_enforce_json_depth_and_keys",
+    "_json_schema_regex",
+    "_parse_finite_float",
+    "_parse_finite_int",
+    "_reject_constant",
+    "_validate_non_symlink_dir",
+    "canonical",
+    "read_json",
+    "read_regular_bytes",
+    "reject_sensitive",
+    "unique_object",
+]
 
 
 def _check_utf8_str(value: str) -> None:
@@ -158,7 +185,7 @@ def reject_sensitive(value: Any) -> None:
                 if not isinstance(key, str):
                     raise ValueError("JSON object keys must be strings")
                 _check_utf8_str(key)
-                if _SENSITIVE_RE.search(key):
+                if _SENSITIVE_RE.search(key) or _DENIED_SECRET_KEY_RE.fullmatch(key.strip()):
                     raise ValueError("inline secret material is forbidden")
                 stack.append((item, depth + 1))
 
@@ -168,13 +195,25 @@ def _check_no_symlink_ancestors(
 ) -> Path:
     raw_path = os.fspath(path)
     path_obj = Path(raw_path)
-    if not path_obj.is_absolute():
-        cur = Path()
-        parts = path_obj.parts if include_self else path_obj.parts[:-1]
-        for part in parts:
-            cur = cur / part
-            if part not in {".", ".."} and cur.is_symlink():
+    raw_parts = path_obj.parts if include_self else path_obj.parts[:-1]
+    if path_obj.is_absolute():
+        cur = Path(path_obj.anchor)
+        walk_parts = raw_parts[1:]
+    else:
+        cwd = Path.cwd()
+        if len(cwd.parts) > 2 and cwd.is_symlink():
+            raise ValueError(error_message)
+        for anc in cwd.parents:
+            if len(anc.parts) > 2 and anc.is_symlink():
                 raise ValueError(error_message)
+        cur = cwd
+        walk_parts = raw_parts
+    for part in walk_parts:
+        if part in ("", "."):
+            continue
+        cur = cur / part
+        if part != ".." and len(cur.parts) > 2 and cur.is_symlink():
+            raise ValueError(error_message)
     abs_path = Path(os.path.abspath(raw_path))
     if include_self and abs_path.is_symlink():
         raise ValueError(error_message)

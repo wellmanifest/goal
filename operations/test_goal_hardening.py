@@ -197,6 +197,58 @@ class GoalHardeningTests(unittest.TestCase):
                 )
                 c.check_shape(sample, bad_kw, self.schema)
 
+    def test_unnormalized_abs_symlink_traversal_secret_keys_and_prose_controls(self) -> None:
+        import goal_io
+
+        self.assertIn("read_regular_bytes", goal_io.__all__)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            real_sub = root / "real_sub"
+            real_sub.mkdir()
+            sibling = root / "sibling"
+            sibling.mkdir()
+            real_cat = root / "catalog.json"
+            real_cat.write_bytes((c.ROOT / "docs/standard/catalog.json").read_bytes())
+            nested_cat = real_sub / "catalog.json"
+            nested_cat.write_bytes((c.ROOT / "docs/standard/catalog.json").read_bytes())
+            sym_sub = root / "sym_sub"
+            sym_sub.symlink_to(real_sub)
+
+            unnorm_cat = f"{sym_sub}/../catalog.json"
+            with self.assertRaisesRegex(ValueError, "symbolic link"):
+                c.read_json(unnorm_cat)
+            self.assertEqual(c.main(["--catalog", unnorm_cat]), 2)
+            with (
+                patch.object(c.subprocess, "run") as run,
+                self.assertRaisesRegex(ValueError, "non-symlink directory"),
+            ):
+                c._read_git_blob(f"{sym_sub}/../real_sub", "a" * 40, "goal/delivery.py")
+            run.assert_not_called()
+
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(sibling)
+                with self.assertRaisesRegex(ValueError, "symbolic link"):
+                    c.read_json("../sym_sub/catalog.json")
+            finally:
+                os.chdir(old_cwd)
+
+        secret_k = "api_" + "key"
+        with self.assertRaisesRegex(ValueError, "inline secret"):
+            c.reject_sensitive({secret_k: "plain-non-pattern-value"})
+
+        for mutator in (
+            lambda d: d["coverage"].update(scope="   "),
+            lambda d: d["coverage"].update(scope="bad\x1b[31mscope"),
+            lambda d: d["coverage"].update(exclusions=["bad\x00item"]),
+            lambda d: d["rules"][0].update(statement="line1\nline2"),
+            lambda d: d["rules"][0].update(statement="csi\x9b31m"),
+        ):
+            bad = deepcopy(self.catalog)
+            mutator(bad)
+            with self.assertRaisesRegex(ValueError, "blank or control-character prose"):
+                c.validate(bad, self.schema)
+
 
 if __name__ == "__main__":
     unittest.main()
