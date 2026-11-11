@@ -18,8 +18,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 1024 * 1024
 MAX_JSON_DEPTH = 64
-_HEX40_RE = re.compile(r"[0-9a-f]{40}\Z")
-_REL_PATH_RE = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\Z")
+_HEX40_RE = re.compile(r"\A[0-9a-f]{40}\Z")
+_REL_PATH_RE = re.compile(r"\A[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\Z")
+_LOCAL_REF_RE = re.compile(r"\A#/[\$]defs/[A-Za-z0-9_-]+\Z")
 _SENSITIVE_RE = re.compile(
     r"(?:gh[pousr]_[A-Za-z0-9_]{20,}"
     r"|github_pat_[A-Za-z0-9_]{20,}"
@@ -56,29 +57,48 @@ def _parse_finite_float(token: str) -> float:
     return parsed
 
 
+def _check_utf8_str(value: str) -> None:
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as err:
+        raise ValueError("lone UTF-16 surrogate in JSON string is forbidden") from err
+
+
 def _enforce_json_depth_and_keys(root: Any, *, max_depth: int = MAX_JSON_DEPTH) -> None:
+    if type(max_depth) is not int or max_depth < 1:
+        raise ValueError("max_depth must be a positive integer")
     stack: list[tuple[Any, int]] = [(root, 0)]
     while stack:
         current, depth = stack.pop()
         if depth > max_depth:
             raise ValueError(f"JSON nesting depth exceeds maximum of {max_depth}")
-        if isinstance(current, float) and not math.isfinite(current):
+        if isinstance(current, str):
+            _check_utf8_str(current)
+        elif type(current) is int:
+            try:
+                ok = math.isfinite(float(current))
+            except OverflowError:
+                ok = False
+            if not ok:
+                raise ValueError("JSON integer magnitude exceeds finite range")
+        elif isinstance(current, float) and not math.isfinite(current):
             raise ValueError("non-finite JSON float is forbidden")
-        if isinstance(current, dict):
+        elif isinstance(current, dict):
             next_depth = depth + 1
             if next_depth > max_depth and current:
                 raise ValueError(f"JSON nesting depth exceeds maximum of {max_depth}")
             for key, item in current.items():
                 if not isinstance(key, str):
                     raise ValueError("JSON object keys must be strings")
-                if isinstance(item, (dict, list, float)):
+                _check_utf8_str(key)
+                if isinstance(item, (dict, list, str, int, float)):
                     stack.append((item, next_depth))
         elif isinstance(current, list):
             next_depth = depth + 1
             if next_depth > max_depth and current:
                 raise ValueError(f"JSON nesting depth exceeds maximum of {max_depth}")
             for item in current:
-                if isinstance(item, (dict, list, float)):
+                if isinstance(item, (dict, list, str, int, float)):
                     stack.append((item, next_depth))
 
 
@@ -99,6 +119,8 @@ def _json_schema_regex(pattern: str) -> re.Pattern[str]:
         elif ch == "]" and in_class:
             in_class = False
             out.append(ch)
+        elif ch == "^" and not in_class:
+            out.append(r"\A")
         elif ch == "$" and not in_class:
             out.append(r"\Z")
         else:
@@ -128,7 +150,18 @@ def reject_sensitive(value: Any) -> None:
 
 
 def read_regular_bytes(path: str | Path, *, max_bytes: int = MAX_BYTES) -> bytes:
+    if type(max_bytes) is not int or max_bytes < 1:
+        raise ValueError("max_bytes must be a positive integer")
     raw_path = os.fspath(path)
+    path_obj = Path(raw_path)
+    if not path_obj.is_absolute():
+        cur = Path()
+        for part in path_obj.parts[:-1]:
+            cur = cur / part
+            if cur.is_symlink():
+                raise ValueError("symbolic link JSON input is forbidden")
+    elif any(anc.is_symlink() for anc in path_obj.parents if len(anc.parts) > 2):
+        raise ValueError("symbolic link JSON input is forbidden")
     st = os.lstat(raw_path)
     if stat.S_ISLNK(st.st_mode):
         raise ValueError("symbolic link JSON input is forbidden")
@@ -223,7 +256,7 @@ def check_shape(
         raise ValueError(f"unsupported schema at {location}")
     if "$ref" in schema:
         ref = schema["$ref"]
-        if not isinstance(ref, str) or not re.fullmatch(r"#/[\$]defs/[A-Za-z0-9_-]+\Z", ref):
+        if not isinstance(ref, str) or _LOCAL_REF_RE.fullmatch(ref) is None:
             raise ValueError("only local definition references are supported")
         defs = document.get("$defs")
         ref_name = ref.rsplit("/", 1)[1]
@@ -246,8 +279,12 @@ def check_shape(
         "null": type(None),
     }
     expected = schema.get("type")
-    if expected:
+    if expected is not None:
         expected_list = [expected] if isinstance(expected, str) else expected
+        if not isinstance(expected_list, list) or not expected_list or any(
+            not isinstance(t, str) or t not in types for t in expected_list
+        ):
+            raise ValueError(f"unsupported schema at {location}")
         if not any(type(value) is types[t] for t in expected_list):
             raise ValueError(f"type mismatch at {location}")
     if isinstance(value, dict):
@@ -340,32 +377,30 @@ def _read_git_blob(root: str | Path, revision: str, path: str) -> bytes:
     return result.stdout
 
 
-def _collect_scope_targets(target: ast.expr, symbols: set[str]) -> None:
-    if isinstance(target, ast.Name):
-        symbols.add(target.id)
-    elif isinstance(target, (ast.Tuple, ast.List)):
-        for elt in target.elts:
-            _collect_scope_targets(elt, symbols)
-
-
-def _collect_scope_symbols(body: list[ast.stmt], symbols: set[str]) -> None:
-    for stmt in body:
-        if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            symbols.add(stmt.name)
-        elif isinstance(stmt, ast.ClassDef):
-            symbols.add(stmt.name)
-            _collect_scope_symbols(stmt.body, symbols)
-        elif isinstance(stmt, ast.Assign):
-            for target in stmt.targets:
-                _collect_scope_targets(target, symbols)
-        elif isinstance(stmt, ast.AnnAssign) and stmt.value is not None:
-            _collect_scope_targets(stmt.target, symbols)
-
-
 def _extract_python_symbols(raw: bytes) -> set[str]:
+    if len(raw) > MAX_BYTES or b"\x00" in raw:
+        raise ValueError("invalid Python source blob")
     tree = ast.parse(raw)
     symbols: set[str] = set()
-    _collect_scope_symbols(tree.body, symbols)
+    stmt_stack: list[list[ast.stmt]] = [tree.body]
+    while stmt_stack:
+        body = stmt_stack.pop()
+        for stmt in body:
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                symbols.add(stmt.name)
+            elif isinstance(stmt, ast.ClassDef):
+                symbols.add(stmt.name)
+                stmt_stack.append(stmt.body)
+            elif isinstance(stmt, ast.Assign) or (
+                isinstance(stmt, ast.AnnAssign) and stmt.value is not None
+            ):
+                target_stack = list(stmt.targets) if isinstance(stmt, ast.Assign) else [stmt.target]
+                while target_stack:
+                    tgt = target_stack.pop()
+                    if isinstance(tgt, ast.Name):
+                        symbols.add(tgt.id)
+                    elif isinstance(tgt, (ast.Tuple, ast.List)):
+                        target_stack.extend(tgt.elts)
     return symbols
 
 
