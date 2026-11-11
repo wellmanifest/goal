@@ -4,15 +4,20 @@ from __future__ import annotations
 
 import argparse
 import ast
+import errno
 import hashlib
 import json
+import math
+import os
 import re
+import stat
 import subprocess
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 1024 * 1024
+MAX_JSON_DEPTH = 64
 _HEX40_RE = re.compile(r"[0-9a-f]{40}\Z")
 _REL_PATH_RE = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\Z")
 _SENSITIVE_RE = re.compile(
@@ -32,10 +37,49 @@ def canonical(value: Any) -> str:
 def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
+        if not isinstance(key, str):
+            raise ValueError("JSON object keys must be strings")
         if key in result:
             raise ValueError("duplicate JSON key")
         result[key] = value
     return result
+
+
+def _reject_constant(token: str) -> Any:
+    raise ValueError(f"non-standard JSON constant {token!r} is forbidden")
+
+
+def _parse_finite_float(token: str) -> float:
+    parsed = float(token)
+    if not math.isfinite(parsed):
+        raise ValueError(f"JSON float out of finite IEEE-754 range: {token!r}")
+    return parsed
+
+
+def _enforce_json_depth_and_keys(root: Any, *, max_depth: int = MAX_JSON_DEPTH) -> None:
+    stack: list[tuple[Any, int]] = [(root, 0)]
+    while stack:
+        current, depth = stack.pop()
+        if depth > max_depth:
+            raise ValueError(f"JSON nesting depth exceeds maximum of {max_depth}")
+        if isinstance(current, float) and not math.isfinite(current):
+            raise ValueError("non-finite JSON float is forbidden")
+        if isinstance(current, dict):
+            next_depth = depth + 1
+            if next_depth > max_depth and current:
+                raise ValueError(f"JSON nesting depth exceeds maximum of {max_depth}")
+            for key, item in current.items():
+                if not isinstance(key, str):
+                    raise ValueError("JSON object keys must be strings")
+                if isinstance(item, (dict, list, float)):
+                    stack.append((item, next_depth))
+        elif isinstance(current, list):
+            next_depth = depth + 1
+            if next_depth > max_depth and current:
+                raise ValueError(f"JSON nesting depth exceeds maximum of {max_depth}")
+            for item in current:
+                if isinstance(item, (dict, list, float)):
+                    stack.append((item, next_depth))
 
 
 def _json_schema_regex(pattern: str) -> re.Pattern[str]:
@@ -63,30 +107,76 @@ def _json_schema_regex(pattern: str) -> re.Pattern[str]:
 
 
 def reject_sensitive(value: Any) -> None:
-    if isinstance(value, str):
-        if _SENSITIVE_RE.search(value):
-            raise ValueError("inline secret material is forbidden")
-    elif isinstance(value, list):
-        for item in value:
-            reject_sensitive(item)
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            reject_sensitive(key)
-            reject_sensitive(item)
+    stack: list[tuple[Any, int]] = [(value, 0)]
+    while stack:
+        current, depth = stack.pop()
+        if depth > MAX_JSON_DEPTH:
+            raise ValueError(f"JSON nesting depth exceeds maximum of {MAX_JSON_DEPTH}")
+        if isinstance(current, str):
+            if _SENSITIVE_RE.search(current):
+                raise ValueError("inline secret material is forbidden")
+        elif isinstance(current, list):
+            for item in current:
+                stack.append((item, depth + 1))
+        elif isinstance(current, dict):
+            for key, item in current.items():
+                if not isinstance(key, str):
+                    raise ValueError("JSON object keys must be strings")
+                if _SENSITIVE_RE.search(key):
+                    raise ValueError("inline secret material is forbidden")
+                stack.append((item, depth + 1))
+
+
+def read_regular_bytes(path: str | Path, *, max_bytes: int = MAX_BYTES) -> bytes:
+    raw_path = os.fspath(path)
+    st = os.lstat(raw_path)
+    if stat.S_ISLNK(st.st_mode):
+        raise ValueError("symbolic link JSON input is forbidden")
+    if not stat.S_ISREG(st.st_mode):
+        raise ValueError(f"JSON input must be a regular file: {raw_path}")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    try:
+        fd = os.open(raw_path, flags)
+    except OSError as err:
+        if err.errno == errno.ELOOP:
+            raise ValueError("symbolic link JSON input is forbidden") from err
+        raise
+    try:
+        fst = os.fstat(fd)
+        if not stat.S_ISREG(fst.st_mode):
+            raise ValueError(f"JSON input must be a regular file: {raw_path}")
+        if (st.st_dev, st.st_ino) != (fst.st_dev, fst.st_ino):
+            raise ValueError(f"JSON input changed during open: {raw_path}")
+        if fst.st_size > max_bytes:
+            raise ValueError("JSON input exceeds 1 MiB")
+        chunks: list[bytes] = []
+        total = 0
+        while True:
+            chunk = os.read(fd, min(65536, max_bytes + 1 - total))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError("JSON input exceeds 1 MiB")
+        return b"".join(chunks)
+    finally:
+        os.close(fd)
 
 
 def read_json(path: str | Path) -> tuple[Any, str]:
-    target = Path(path)
-    if target.is_symlink():
-        raise ValueError("symbolic link JSON input is forbidden")
-    if not target.is_file():
-        raise OSError(f"JSON file not found: {target}")
-    with target.open("rb") as stream:
-        raw = stream.read(MAX_BYTES + 1)
-    if len(raw) > MAX_BYTES:
-        raise ValueError("JSON input exceeds 1 MiB")
-    data = json.loads(raw, object_pairs_hook=unique_object)
-    canonical(data)  # Reject NaN/Infinity accepted by Python's permissive parser.
+    raw = read_regular_bytes(path, max_bytes=MAX_BYTES)
+    text = raw.decode("utf-8")
+    try:
+        data = json.loads(
+            text,
+            object_pairs_hook=unique_object,
+            parse_constant=_reject_constant,
+            parse_float=_parse_finite_float,
+        )
+    except RecursionError as err:
+        raise ValueError(f"JSON nesting depth exceeds maximum of {MAX_JSON_DEPTH}") from err
+    _enforce_json_depth_and_keys(data)
     return data, hashlib.sha256(raw).hexdigest()
 
 
@@ -102,6 +192,12 @@ def check_shape(
     Unsupported keywords fail closed, rather than silently ignoring a future
     schema requirement. This is not advertised as a general JSON Schema engine.
     """
+    if depth == 0:
+        _enforce_json_depth_and_keys(value)
+        if not isinstance(document, dict):
+            raise ValueError("schema document must be a JSON object")
+    if not isinstance(schema, dict) or any(not isinstance(k, str) for k in schema):
+        raise ValueError(f"unsupported schema at {location}")
     supported = {
         "$schema",
         "$id",
@@ -127,21 +223,20 @@ def check_shape(
         raise ValueError(f"unsupported schema at {location}")
     if "$ref" in schema:
         ref = schema["$ref"]
-        if not re.fullmatch(r"#/[\$]defs/[A-Za-z0-9_-]+\Z", ref):
+        if not isinstance(ref, str) or not re.fullmatch(r"#/[\$]defs/[A-Za-z0-9_-]+\Z", ref):
             raise ValueError("only local definition references are supported")
-        check_shape(
-            value,
-            document["$defs"][ref.rsplit("/", 1)[1]],
-            document,
-            location,
-            depth + 1,
-        )
+        defs = document.get("$defs")
+        ref_name = ref.rsplit("/", 1)[1]
+        if not isinstance(defs, dict) or ref_name not in defs:
+            raise ValueError(f"unknown schema definition at {location}")
+        check_shape(value, defs[ref_name], document, location, depth + 1)
         return
-    encoded = canonical(value)
-    if "const" in schema and encoded != canonical(schema["const"]):
-        raise ValueError(f"constant mismatch at {location}")
-    if "enum" in schema and encoded not in [canonical(x) for x in schema["enum"]]:
-        raise ValueError(f"unknown vocabulary at {location}")
+    if "const" in schema or "enum" in schema:
+        encoded = canonical(value)
+        if "const" in schema and encoded != canonical(schema["const"]):
+            raise ValueError(f"constant mismatch at {location}")
+        if "enum" in schema and encoded not in [canonical(x) for x in schema["enum"]]:
+            raise ValueError(f"unknown vocabulary at {location}")
     types = {
         "object": dict,
         "array": list,
@@ -213,10 +308,18 @@ def validate(data: dict[str, Any], schema: dict[str, Any]) -> None:
             raise ValueError("noncanonical evidence path")
 
 
-def _read_git_blob(root: str | Path, revision: str, path: str) -> bytes:
-    root_path = Path(root)
-    if root_path.is_symlink() or not root_path.is_dir():
+def _validate_non_symlink_dir(root: str | Path) -> Path:
+    root_path = Path(os.path.abspath(os.fspath(root)))
+    for candidate in (root_path, *root_path.parents):
+        if candidate.is_symlink():
+            raise ValueError("source root must be a non-symlink directory")
+    if not root_path.is_dir():
         raise ValueError("source root must be a non-symlink directory")
+    return Path(root)
+
+
+def _read_git_blob(root: str | Path, revision: str, path: str) -> bytes:
+    root_path = _validate_non_symlink_dir(root)
     if not isinstance(revision, str) or _HEX40_RE.fullmatch(revision) is None:
         raise ValueError("source revision must be an immutable 40-hex commit SHA")
     if (
@@ -313,7 +416,8 @@ def main(argv: list[str] | None = None) -> int:
     }
     code = "WMGOAL-INPUT-001"
     try:
-        data, digest = read_json(args.catalog)
+        catalog_path = Path(os.path.abspath(os.fspath(args.catalog)))
+        data, digest = read_json(catalog_path)
         schema, _ = read_json(ROOT / "models/catalog.schema.json")
         report["catalogSha256"] = digest
         code = "WMGOAL-CONTRACT-001"
