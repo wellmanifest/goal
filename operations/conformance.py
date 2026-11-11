@@ -199,12 +199,23 @@ def check_shape(
                 raise ValueError(f"invalid string at {location}")
 
 
+def _require_clean_prose(value: str, field_name: str) -> None:
+    if not value.strip() or any(
+        ord(ch) < 32 or ord(ch) == 127 or 0x80 <= ord(ch) <= 0x9F for ch in value
+    ):
+        raise ValueError(f"blank or control-character prose at {field_name}")
+
+
 def validate(data: dict[str, Any], schema: dict[str, Any]) -> None:
     check_shape(data, schema, schema)
     reject_sensitive(data)
+    _require_clean_prose(data["coverage"]["scope"], "$.coverage.scope")
+    for idx, item in enumerate(data["coverage"]["exclusions"]):
+        _require_clean_prose(item, f"$.coverage.exclusions[{idx}]")
     ids: set[str] = set()
     concerns: set[str] = set()
-    for rule in data["rules"]:
+    for r_idx, rule in enumerate(data["rules"]):
+        _require_clean_prose(rule["statement"], f"$.rules[{r_idx}].statement")
         if rule["id"] in ids or rule["concern"] in concerns:
             raise ValueError("duplicate rule identity or competing concern owner")
         ids.add(rule["id"])
@@ -359,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
         subprocess.SubprocessError,
     ) as error:
         report["findings"].append({"code": code, "message": str(error)})
-    print(json.dumps(report, indent=2, sort_keys=True))
+    print(json.dumps(report, indent=2, sort_keys=True, allow_nan=False))
     return 0 if report["valid"] else 2
 
 

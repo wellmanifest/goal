@@ -1,0 +1,87 @@
+{
+  "schema": "new-project.intent/v3",
+  "ticket": "ticket-008",
+  "summary": "Harden goal_io symlink-parent traversal, secret-key checks, and catalog prose controls",
+  "workstream": "integration",
+  "classification": {
+    "kind": "BUG",
+    "priority": "P1",
+    "origin": "health"
+  },
+  "allowedPaths": [
+    "project/ticket-007/README.md",
+    "project/ticket-008/**",
+    "TODO.md",
+    "project/TICKETS.md",
+    "operations/conformance.py",
+    "operations/goal_io.py",
+    "operations/test_goal_hardening.py"
+  ],
+  "forbiddenPaths": [
+    "project/ticket-*/user-*.md"
+  ],
+  "stacks": [],
+  "dependsOn": [],
+  "conflictsWith": [],
+  "integrationTicket": null,
+  "delivery": {
+    "acceptedBaseSha": "ba536b6ec12ef6dc874b15216096330a3225f8e3",
+    "targetBranch": "main",
+    "outcome": "Harden _check_no_symlink_ancestors against un-normalized absolute and sibling relative symlink-parent traversal before os.path.abspath, declare goal_io.__all__, reject credential-named dictionary keys in reject_sensitive, reject blank or C0/DEL/C1 control-character catalog prose in validate, pass allow_nan=False in main, expand operations/test_goal_hardening.py, and mark merged ticket-007 DONE.",
+    "nonGoals": [
+      "Do not modify docs/standard/catalog.json rule semantics or runtimeOwner",
+      "No runtime dependency additions"
+    ],
+    "complexity": "S",
+    "estimatedMinutes": 20,
+    "budgets": {
+      "maxImplementationFiles": 4,
+      "maxAffectedComponents": 1,
+      "maxPublicInterfaceChanges": 0,
+      "maxRuntimeDependencies": 0
+    },
+    "architecture": {
+      "status": "accepted",
+      "decision": "Keep all regular-file/symlink/secret guards in operations/goal_io.py and catalog prose invariants in operations/conformance.py so all modules stay strictly below 500 lines.",
+      "components": [
+        {
+          "name": "goal-catalog-conformance",
+          "paths": [
+            "operations/goal_io.py",
+            "operations/conformance.py",
+            "operations/test_goal_hardening.py"
+          ]
+        }
+      ],
+      "responsibilityChanges": false,
+      "interfaceChanges": [],
+      "dataChanges": [],
+      "ui": {
+        "impact": "none",
+        "states": [],
+        "evidence": []
+      },
+      "rollback": "Revert the ticket-008 branch commit or close the pull request before merge."
+    },
+    "runtimeDependencies": [],
+    "validation": [
+      {
+        "criterion": "AC-01",
+        "commands": [
+          "python3 operations/conformance.py",
+          "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider"
+        ],
+        "evidence": "project/ticket-008/README.md"
+      },
+      {
+        "criterion": "AC-02",
+        "commands": [
+          "ruff check --no-cache operations",
+          "./project/governance-check.sh --base origin/main",
+          "wellman check"
+        ],
+        "evidence": "project/ticket-008/README.md"
+      }
+    ]
+  }
+}
