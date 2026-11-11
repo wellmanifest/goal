@@ -1,0 +1,91 @@
+{
+  "schema": "new-project.intent/v3",
+  "ticket": "ticket-006",
+  "summary": "Harden Goal JSON overflow/surrogates, symlink ancestors, and iterative AST symbol bounds",
+  "workstream": "integration",
+  "classification": {
+    "kind": "BUG",
+    "priority": "P1",
+    "origin": "health"
+  },
+  "allowedPaths": [
+    "project/ticket-005/README.md",
+    "project/ticket-006/**",
+    "TODO.md",
+    "project/TICKETS.md",
+    "operations/conformance.py",
+    "operations/test_goal_hardening.py"
+  ],
+  "forbiddenPaths": [
+    "project/ticket-*/user-*.md"
+  ],
+  "stacks": [],
+  "dependsOn": [],
+  "conflictsWith": [],
+  "integrationTicket": null,
+  "delivery": {
+    "acceptedBaseSha": "958b227e43c1e10c53a750bbacd25eaf497ad03b",
+    "targetBranch": "main",
+    "outcome": "Anchor regexes with \\A...\\Z, reject 10**400 JSON integer overflow and lone UTF-16 surrogates, enforce positive max_bytes and symlink-ancestor checks in read_regular_bytes, fail closed on unknown schema type names, convert AST symbol extraction to an iterative stack in operations/conformance.py, expand operations/test_goal_hardening.py, and close merged ticket-005.",
+    "nonGoals": [
+      "Do not modify docs/standard/catalog.json rule semantics or runtimeOwner",
+      "No runtime dependency additions"
+    ],
+    "complexity": "S",
+    "estimatedMinutes": 20,
+    "budgets": {
+      "maxImplementationFiles": 3,
+      "maxAffectedComponents": 1,
+      "maxPublicInterfaceChanges": 0,
+      "maxRuntimeDependencies": 0
+    },
+    "architecture": {
+      "status": "accepted",
+      "decision": "Keep zero-dependency offline conformance in operations/conformance.py (< 500 lines) while hardening JSON integer/surrogate bounds, regular-file ancestor symlinks, schema type checks, and iterative AST symbol extraction.",
+      "components": [
+        {
+          "name": "goal-catalog-conformance",
+          "paths": [
+            "operations/conformance.py",
+            "operations/test_goal_hardening.py"
+          ]
+        }
+      ],
+      "responsibilityChanges": false,
+      "interfaceChanges": [],
+      "dataChanges": [],
+      "ui": {
+        "impact": "none",
+        "states": [],
+        "evidence": []
+      },
+      "rollback": "Revert the ticket branch commit or close the pull request before merge."
+    },
+    "runtimeDependencies": [],
+    "validation": [
+      {
+        "criterion": "AC-01",
+        "commands": [
+          "python3 operations/conformance.py"
+        ],
+        "evidence": "project/ticket-006/README.md"
+      },
+      {
+        "criterion": "AC-02",
+        "commands": [
+          "ruff check --no-cache operations",
+          "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q"
+        ],
+        "evidence": "project/ticket-006/README.md"
+      },
+      {
+        "criterion": "AC-03",
+        "commands": [
+          "./project/governance-check.sh --base origin/main",
+          "wellman check"
+        ],
+        "evidence": "project/ticket-006/README.md"
+      }
+    ]
+  }
+}
