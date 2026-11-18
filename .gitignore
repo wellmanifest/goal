@@ -7,3 +7,9 @@
 /.subactor/snapshots/
 __pycache__/
 .pytest_cache/
+
+# Repository-local worktrees and operational state
+*.egg-info/
+*.egg
+build/
+dist/
